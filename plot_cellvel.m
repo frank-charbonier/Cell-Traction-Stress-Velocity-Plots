@@ -1,4 +1,10 @@
-% function plot_cellvel
+function plot_cellvel(time_increment, max_vel)
+arguments
+    % Time between images
+    time_increment = 10; % min
+    % Max velocity for color plots
+    max_vel = 0.25;   % units: um/min
+end
 %PLOT_CELLVEL Plot cell velocities
 %
 % First run digital image correlation on images of the cells. Since you are
@@ -27,34 +33,45 @@
 %
 % Written by Jacob Notbohm, Univerity of Wisconsin-Madison, 2015-2020
 
-
-clear;
+% clear;
 close all;
 clc;
 
 
 %% --- USER INPUTS ---
 % Name of displacment data to load
-DICname = 'FIDICc2.mat';
+DICname = 'cells_DIC_results_w0=16.mat';
 % Name of multipage tif file to plot cells.
 %   Set to [] if it matches c2_*.tif
 %   Set to 'none' if there is no cell image
-cellname = 'c2_island01.tif';
+cellname = 'cells.tif';
 % Name of domain. This is where cells are located. Set to [] if no domain
 domainname = 'domain.tif';
-% Header of name to save plots. This can contain a directory listing
-dirname = 'cell_velocity'; % Name of a folder to put plots in
-savenameheader = [dirname,'/t_']; % Header of file name to save
-% Set to [] to make figure visible. Set to 1 to make figure invisible.
-invisible = [];
-% Time between images
-time_increment = 10; % min
-% Max velocity for color plots
-max_vel = 0.25;   % units: um/min
 % Typically, the quiver plot, the number of quivers needs to be reduced so
 % that they can be seen more clearly. Downsample the number of data points
 % for plotting quivers by this factor
-qd = 4;
+qd = 8;
+%Quiver size
+quiver_size=3;
+% Header of name to save plots. This can contain a directory listing
+% dirname = 'cell_velocity'; % Name of a folder to put plots in
+dirname = 'cell_velocity_qd_8_quiver_size_3'; % Name of a folder to put plots in
+savenameheader = [dirname,'/t_']; % Header of file name to save
+% Set to [] to make figure visible. Set to 1 to make figure invisible.
+invisible = 1;
+% Set to [] to plot x and y components, otherwise plot radial and axial
+plot_radial = 1;
+% Name of file to save outputs
+savename_data = 'cellvel_processed.mat';
+
+
+%% Get time between images
+if isfile('TimeIncrement.txt')
+    fid = fopen('TimeIncrement.txt');
+    txtcell = cell2mat(textscan(fid,'%f %*[^\n]')); % '%*[^\n]' skips the remainder of each line
+    time_increment = txtcell(1); % min
+    fclose(fid);
+end
 
 
 %% --- MAKE PLOTS ---
@@ -88,6 +105,12 @@ v_cell = v_cell/time_increment;
 
 % Number of correlations
 K = size(u_cell,3);
+
+% Preallocate array for radial and tangential displacements
+if (plot_radial==1)
+    ut = zeros(size(u_cell));
+    ur = zeros(size(u_cell));
+end
 
 % Get center from center of first domain image
 if ~isempty(domainname)
@@ -197,9 +220,12 @@ for k=1:K
         %         u_cell_k = u_cell_k - median(u_cell_k(domain));
         %         v_cell_k = v_cell_k - median(v_cell_k(domain));
         
-        % Set values outside domain to zero
-        u_cell_k(~domain) = 0;
-        v_cell_k(~domain) = 0;
+        % Set values outside domain to nan
+        u_cell_k(~domain) = nan;
+        v_cell_k(~domain) = nan;
+        % Update values for u_cell and v_cell
+        u_cell(:,:,k) = u_cell_k;
+        v_cell(:,:,k) = v_cell_k;
     else
         % Subtract off median of full velocity field. This may or may not
         % work for your images.
@@ -210,15 +236,17 @@ for k=1:K
     % Plot speed
     subplot(2,3,5)
     u_cell_mag = sqrt(u_cell_k.^2 + v_cell_k.^2);
-    imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_mag);
+    % imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_mag);
+    imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_mag, ...
+        "AlphaData",~isnan(u_cell_mag)); % use AlphaData property to make naan values transparent
     hold on
     x_cell2=downsample(x_cell,qd); x_cell2=downsample(x_cell2',qd)';
     y_cell2=downsample(y_cell,qd); y_cell2=downsample(y_cell2',qd)';
     u_cell_k2=downsample(u_cell_k,qd); u_cell_k2=downsample(u_cell_k2',qd)';
     v_cell_k2=downsample(v_cell_k,qd); v_cell_k2=downsample(v_cell_k2',qd)';
-    quiver(x_cell2,y_cell2,u_cell_k2,v_cell_k2, 2.5,... % The scalar number is the relative scaling (length) of the quivers
-        'color', [1 1 1]*0.9,'linewidth',1); %You may have to adjust the color of the quivers to show up agaist the colormap
-    caxis([0 max_vel]); colormap(gca, 'parula'); colorbar;
+    quiver(x_cell2,y_cell2,u_cell_k2,v_cell_k2, quiver_size,... % The scalar number is the relative scaling (length) of the quivers
+        'color', [0 0 0],'linewidth',1); %You may have to adjust the color of the quivers to show up agaist the colormap
+    caxis([0 max_vel]);colormap(gca, brewermap([],'YlOrRd')); colorbar;
     axis xy; axis equal; axis tight; set(gca,'box','off');
     if pix_size == 1
         xlabel('pix'); ylabel('pix');
@@ -229,8 +257,11 @@ for k=1:K
     
     % Plot x velocity
     subplot(2,3,2)
-    imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_k);
+    % imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_k);
+    imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_k, ...
+        "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
     caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
+    set(gca, 'Color', 'k')   % Set plot background to black
     axis xy; axis equal; axis tight; set(gca,'box','off');
     if pix_size == 1
         xlabel('pix'); ylabel('pix');
@@ -241,8 +272,11 @@ for k=1:K
     
     % Plot y velocity
     subplot(2,3,3)
-    imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],v_cell_k);
+    % imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],v_cell_k);
+    imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],v_cell_k, ...
+        "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
     caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
+    set(gca, 'Color', 'k')   % Set plot background to black
     axis xy; axis equal; axis tight; set(gca,'box','off');
     if pix_size == 1
         xlabel('pix'); ylabel('pix');
@@ -252,35 +286,51 @@ for k=1:K
     title('Y velocity');
     
     % OPTIONAL: radial and angular compoents of velocity instead of x and y
-    %     % Radial velocity
-    %     subplot(2,3,2);
-    %
-    %     % r_grid = sqrt( (x-xc).^2 + (y-yc).^2 ); % Gridpoints
-    %     theta = atan2( (y-yc), (x-xc) );
-    %
-    %     ur = u_cell_k.*cos(theta) + v_cell_k.*sin(theta);
-    %
-    %     imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ur);
-    %     caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
-    %     axis xy; axis equal; axis tight; set(gca,'box','off');
-    %     xlabel('\mum','fontsize',11); ylabel('\mum','fontsize',11);
-    %     title('Cell radial velocity');
-    %
-    %     % Angular velocity
-    %     subplot(2,3,3)
-    %
-    %     ut = u_cell_k.*cos(theta+pi/2) + v_cell_k.*sin(theta+pi/2);
-    %
-    %     imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ut);
-    %     caxis([-max_vel max_vel]); colormap(gca,cmap); colorbar;
-    %     axis xy; axis equal; axis tight; set(gca,'box','off');
-    %     xlabel('\mum','fontsize',11); ylabel('\mum','fontsize',11);
-    %     title('Cell angular velocity');
+    if (plot_radial==1)
+        % Radial velocity
+        subplot(2,3,2);
     
+        % r_grid = sqrt( (x-xc).^2 + (y-yc).^2 ); % Gridpoints
+        theta = atan2( (y_cell-yc), (x_cell-xc) );
+    
+        ur_k = u_cell_k.*cos(theta) + v_cell_k.*sin(theta);
+    
+%         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ur_k);
+%         caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
+        imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ur_k, ...
+            "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
+        caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
+        set(gca, 'Color', 'k')   % Set plot background to black
+        axis xy; axis equal; axis tight; set(gca,'box','off');
+        xlabel('\mum','fontsize',11); ylabel('\mum','fontsize',11);
+        title('Cell radial velocity');
+    
+        % Angular velocity
+        subplot(2,3,3)
+    
+        ut_k = u_cell_k.*cos(theta+pi/2) + v_cell_k.*sin(theta+pi/2);
+    
+%         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ut_k);
+%         caxis([-max_vel max_vel]); colormap(gca,cmap); colorbar;
+        imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ut_k, ...
+            "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
+        caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
+        set(gca, 'Color', 'k')   % Set plot background to black
+        axis xy; axis equal; axis tight; set(gca,'box','off');
+        xlabel('\mum','fontsize',11); ylabel('\mum','fontsize',11);
+        title('Cell angular velocity');
+
+        % Update values for ut and ur
+        ut(:,:,k) = ut_k;
+        ur(:,:,k) = ur_k;
+    end
     % Save
      set(gcf,'PaperPositionMode','auto','InvertHardCopy','off');
     print('-dpng','-r300',[savenameheader,num2str(k,'%0.3d'),'-',num2str(k+1,'%0.3d')]);
     
     close(hf);
+
+    save(savename_data, 'x_cell', 'y_cell', 'u_cell','v_cell', 'ut', 'ur');
+       % outputs: 
     
 end
