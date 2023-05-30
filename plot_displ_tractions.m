@@ -1,4 +1,29 @@
-%function plot_displ_tractions
+function plot_displ_tractions(cellname, filename, domainname, dirname, savenameheader, umax, tmax, ...
+        num_images, invisible)
+    arguments
+        % Name of multipage tif file to plot cells. 
+        %   Set to [] if 'c2' is in the name
+        %   Set to 'none' if there is no cell image
+        cellname = 'cells.tif';
+        % Name of mat file with displacements and tractions
+        filename = 'tract_results.mat';
+        % Name of domain. This is where cells are located. Set to [] if no domain
+        domainname = 'domain.tif';
+        % Header of name to save plots.
+        dirname = 'displ_traction'; % Name of a folder to put plots in
+        savenameheader = [dirname,'/t_']; % Header of file name to save
+        % savenameheader = 'displ_traction_'; % Other options are commented
+        % curdir = pwd;
+        % [~, folderName, ~] = fileparts(curdir);
+        % savenameheader = ['../',folderName,'displ_traction_t'];
+        % Max value of displ and traction (used for color plot limits)
+        umax = 1;     % um
+        tmax = 600;      % Pa
+        % Number of images to plot. Set to empty arry [] to plot all images
+        num_images = [];
+        % Set to [] to make figure visible.
+        invisible = 1;
+    end
 %PLOT_DISPL_TRACTIONS Plot displacements and tractions
 % 
 % First run digital image correlation and compute tractions.
@@ -27,35 +52,10 @@
 % 
 % Written by Jacob Notbohm, Univerity of Wisconsin-Madison, 2015-2020
 
-clear;
+% clear;
 close all;
 clc;
 
-
-
-%% --- USER INPUTS ---
-% Set to [] to make figure visible.
-invisible = [];
-% Name of multipage tif file to plot cells. 
-%   Set to [] if 'c2' is in the name
-%   Set to 'none' if there is no cell image
-cellname = 'c2_island01.tif';
-% Name of mat file with displacements and tractions
-filename = 'tract_results.mat';
-% Name of domain. This is where cells are located. Set to [] if no domain
-domainname = [];
-% Header of name to save plots.
-dirname = 'displ_traction'; % Name of a folder to put plots in
-savenameheader = [dirname,'/t_']; % Header of file name to save
-% savenameheader = 'displ_traction_'; % Other options are commented
-% curdir = pwd;
-% [~, folderName, ~] = fileparts(curdir);
-% savenameheader = ['../',folderName,'displ_traction_t'];
-% Max value of displ and traction (used for color plot limits)
-umax = 1;     % um
-tmax = 100;      % Pa
-% Number of images to plot. Set to empty arry [] to plot all images
-num_images = [];
 
 %% --- LOAD DATA ---
 
