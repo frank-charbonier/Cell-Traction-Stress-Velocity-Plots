@@ -35,12 +35,12 @@ end
 
 % clear;
 close all;
-clc;
+% clc;
 
 
 %% --- USER INPUTS ---
 % Name of displacment data to load
-DICname = 'cells_DIC_results_w0=16.mat';
+DICname = 'cells_DIC_results.mat';
 % Name of multipage tif file to plot cells.
 %   Set to [] if it matches c2_*.tif
 %   Set to 'none' if there is no cell image
@@ -51,7 +51,7 @@ domainname = 'domain.tif';
 % that they can be seen more clearly. Downsample the number of data points
 % for plotting quivers by this factor
 qd = 8;
-%Quiver size
+% Quiver size
 quiver_size=3;
 % Header of name to save plots. This can contain a directory listing
 % dirname = 'cell_velocity'; % Name of a folder to put plots in
