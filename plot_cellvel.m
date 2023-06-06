@@ -1,9 +1,15 @@
-function plot_cellvel(time_increment, max_vel)
+function plot_cellvel(cellname, domainname, time_increment, max_vel, plot_radial)
 arguments
+    cellname = 'cells.tif';
+    % Name of domain. This is where cells are located. Set to [] if no domain
+    domainname = 'domain.tif';
     % Time between images
     time_increment = 10; % min
     % Max velocity for color plots
     max_vel = 0.25;   % units: um/min
+    % Assay format
+    % Set to 0 to plot x and y components, otherwise plot radial and tangential
+    plot_radial = 0;
 end
 %PLOT_CELLVEL Plot cell velocities
 %
@@ -44,9 +50,6 @@ DICname = 'cells_DIC_results.mat';
 % Name of multipage tif file to plot cells.
 %   Set to [] if it matches c2_*.tif
 %   Set to 'none' if there is no cell image
-cellname = 'cells.tif';
-% Name of domain. This is where cells are located. Set to [] if no domain
-domainname = 'domain.tif';
 % Typically, the quiver plot, the number of quivers needs to be reduced so
 % that they can be seen more clearly. Downsample the number of data points
 % for plotting quivers by this factor
@@ -59,19 +62,17 @@ dirname = 'cell_velocity_qd_8_quiver_size_3'; % Name of a folder to put plots in
 savenameheader = [dirname,'/t_']; % Header of file name to save
 % Set to [] to make figure visible. Set to 1 to make figure invisible.
 invisible = 1;
-% Set to [] to plot x and y components, otherwise plot radial and axial
-plot_radial = 1;
 % Name of file to save outputs
 savename_data = 'cellvel_processed.mat';
 
 
-%% Get time between images
-if isfile('TimeIncrement.txt')
-    fid = fopen('TimeIncrement.txt');
-    txtcell = cell2mat(textscan(fid,'%f %*[^\n]')); % '%*[^\n]' skips the remainder of each line
-    time_increment = txtcell(1); % min
-    fclose(fid);
-end
+% %% Get time between images
+% if isfile('TimeIncrement.txt')
+%     fid = fopen('TimeIncrement.txt');
+%     txtcell = cell2mat(textscan(fid,'%f %*[^\n]')); % '%*[^\n]' skips the remainder of each line
+%     time_increment = txtcell(1); % min
+%     fclose(fid);
+% end
 
 
 %% --- MAKE PLOTS ---
@@ -329,8 +330,12 @@ for k=1:K
     print('-dpng','-r300',[savenameheader,num2str(k,'%0.3d'),'-',num2str(k+1,'%0.3d')]);
     
     close(hf);
-
-    save(savename_data, 'x_cell', 'y_cell', 'u_cell','v_cell', 'ut', 'ur');
+    
+    if (plot_radial==1)
+        save(savename_data, 'x_cell', 'y_cell', 'u_cell','v_cell', 'ut', 'ur');
+    else
+        save(savename_data, 'x_cell', 'y_cell', 'u_cell','v_cell');
+    end
        % outputs: 
     
 end
