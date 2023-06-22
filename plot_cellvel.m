@@ -1,16 +1,12 @@
-function plot_cellvel(cellname, domainname, cellvel_savename, pix_size, time_increment, max_vel, plot_radial)
+function plot_cellvel(cellname, cellvel_savename, pix_size, max_vel, plot_radial)
 arguments
     % Name of multipage tif file to plot cells.
     % Set to 'none' if there is no cell image
     cellname = 'cells.tif';
-    % Name of domain. This is where cells are located. Set to [] if no domain
-    domainname = 'domain.tif';
     % Name of cell velocity data to load
     cellvel_savename = 'cellvel_processed.mat';
     % Pixel size [microns]
     pix_size = 1.3;
-    % Time between images
-    time_increment = 10; % min
     % Max velocity for color plots
     max_vel = 0.25;   % units: um/min
     % Assay format
@@ -41,11 +37,8 @@ dirname = 'cell_velocity'; % Name of a folder to put plots in
 savenameheader = [dirname,'/t_']; % Header of file name to save
 % Set to [] to make figure visible. Set to 1 to make figure invisible.
 invisible = 1;
-% Name of file to save outputs
-savename_data = 'cellvel_processed.mat';
 
 %% --- MAKE PLOTS ---
-
 % Make directory to save plots
 if exist(dirname,'dir')==7
     rmdir(dirname,'s');
