@@ -1,30 +1,33 @@
-function plot_cellvel(cellname, cellvel_savename, pix_size, max_vel, plot_radial)
-arguments
-    % Name of multipage tif file to plot cells.
-    % Set to 'none' if there is no cell image
-    cellname = 'cells.tif';
-    % Name of cell velocity data to load
-    cellvel_savename = 'cellvel_processed.mat';
-    % Pixel size [microns]
-    pix_size = 1.3;
-    % Max velocity for color plots
-    max_vel = 0.25;   % units: um/min
-    % Assay format
-    % Set to 0 to plot x and y components, otherwise plot radial and tangential
-    plot_radial = 0;
-end
-% PLOT_CELLVEL Plot cell velocities
-%
-% First run compute_cellvel.m, then use this for plotting
-%
-% Written by Jacob Notbohm, Univerity of Wisconsin-Madison, 2015-2020
-% Adapted by Frank Charbonier, Stanford University, 2023
+function plot_cellvel(cellname, cellvel_savename, pix_size, min_vel, max_vel, plot_radial)
+% Uncomment the arguments section below to include default arguments for the function call
+% arguments
+%     % Name of multipage tif file to plot cells.
+%     % Set to 'none' if there is no cell image
+%     cellname = 'cells.tif';
+%     % Name of cell velocity data to load
+%     cellvel_savename = 'cellvel_processed.mat';
+%     % Pixel size [microns]
+%     pix_size = 1.3;
+%     % Min velocity for color plots
+%     min_vel = -0.25;   % units: um/min
+%     % Max velocity for color plots
+%     max_vel = 0.25;   % units: um/min
+%     % Assay format
+%     % Set to 0 to plot x and y components, otherwise plot radial and tangential
+%     plot_radial = 0;
+% end
+% % PLOT_CELLVEL Plot cell velocities
+% %
+% % First run compute_cellvel.m, then use this for plotting
+% %
+% % Written by Jacob Notbohm, Univerity of Wisconsin-Madison, 2015-2020
+% % Adapted by Frank Charbonier, Stanford University, 2023
 
 % clear;
 close all;
 % clc;
 
-%% --- USER INPUTS ---
+%% --- ADDITIONAL USER INPUTS ---
 % Typically, the quiver plot, the number of quivers needs to be reduced so
 % that they can be seen more clearly. Downsample the number of data points
 % for plotting quivers by this factor
@@ -38,8 +41,11 @@ savenameheader = [dirname,'/t_']; % Header of file name to save
 % Set to [] to make figure visible. Set to 1 to make figure invisible.
 invisible = 1;
 
+cmap = load('map_cold-hot.dat'); % Load hot-cold colormap data
+
 %% --- MAKE PLOTS ---
 % Make directory to save plots
+% If directory already exists, delete folder and subfolders
 if exist(dirname,'dir')==7
     rmdir(dirname,'s');
 end
@@ -48,10 +54,8 @@ mkdir(dirname);
 % Load data
 load(cellvel_savename);
 
-% Number of correlations
+% Loop over all correlations
 K = size(u_cell,3);
-
-cmap = load('map_cold-hot.dat'); % Load hot-cold colormap data
 
 for k=1:K
     hf = make_fig([0.2 0.2 2 1.4]);
@@ -88,10 +92,10 @@ for k=1:K
     u_cell_k = u_cell(:,:,k);
     v_cell_k = v_cell(:,:,k);
     
-    % Plot speed
+    % Plot velocity magnitude (cell speed)
     subplot(2,3,5)
-    u_cell_mag = sqrt(u_cell_k.^2 + v_cell_k.^2);
-    % imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_mag);
+    u_cell_mag = sqrt(u_cell_k.^2 + v_cell_k.^2);   % Compute vleocity magnitude
+
     imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_mag, ...
         "AlphaData",~isnan(u_cell_mag)); % use AlphaData property to make naan values transparent
     hold on
@@ -115,7 +119,7 @@ for k=1:K
     % imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_k);
     imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_k, ...
         "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
-    caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
+    caxis([min_vel max_vel]); colormap(gca, cmap); colorbar;
     set(gca, 'Color', 'k')   % Set plot background to black
     axis xy; axis equal; axis tight; set(gca,'box','off');
     if pix_size == 1
@@ -130,7 +134,7 @@ for k=1:K
     % imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],v_cell_k);
     imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],v_cell_k, ...
         "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
-    caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
+    caxis([min_vel max_vel]); colormap(gca, cmap); colorbar;
     set(gca, 'Color', 'k')   % Set plot background to black
     axis xy; axis equal; axis tight; set(gca,'box','off');
     if pix_size == 1
@@ -145,17 +149,11 @@ for k=1:K
         % Load cell velocity for current frame
         ur_k = ur(:,:,k);
         ut_k = ut(:,:,k);
-        % Radial velocity
+        % Plot radial velocity
         subplot(2,3,2);
-    
-        % r_grid = sqrt( (x-xc).^2 + (y-yc).^2 ); % Gridpoints
-        % theta = atan2( (y_cell-yc), (x_cell-xc) );
-    
-%         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ur_k);
-%         caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ur_k, ...
             "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
-        caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
+        caxis([min_vel max_vel]); colormap(gca, cmap); colorbar;
         set(gca, 'Color', 'k')   % Set plot background to black
         axis xy; axis equal; axis tight; set(gca,'box','off');
         xlabel('\mum','fontsize',11); ylabel('\mum','fontsize',11);
@@ -163,11 +161,9 @@ for k=1:K
     
         % Angular velocity
         subplot(2,3,3)    
-%         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ut_k);
-%         caxis([-max_vel max_vel]); colormap(gca,cmap); colorbar;
         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ut_k, ...
             "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
-        caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
+        caxis([min_vel max_vel]); colormap(gca, cmap); colorbar;
         set(gca, 'Color', 'k')   % Set plot background to black
         axis xy; axis equal; axis tight; set(gca,'box','off');
         xlabel('\mum','fontsize',11); ylabel('\mum','fontsize',11);
@@ -179,5 +175,4 @@ for k=1:K
     print('-dpng','-r300',[savenameheader,num2str(k,'%0.3d'),'-',num2str(k+1,'%0.3d')]);
     
     close(hf);
-    
 end
