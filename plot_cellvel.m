@@ -1,8 +1,14 @@
-function plot_cellvel(cellname, domainname, time_increment, max_vel, plot_radial)
+function plot_cellvel(cellname, domainname, cellvel_savename, pix_size, time_increment, max_vel, plot_radial)
 arguments
+    % Name of multipage tif file to plot cells.
+    % Set to 'none' if there is no cell image
     cellname = 'cells.tif';
     % Name of domain. This is where cells are located. Set to [] if no domain
     domainname = 'domain.tif';
+    % Name of cell velocity data to load
+    cellvel_savename = 'cellvel_processed.mat';
+    % Pixel size [microns]
+    pix_size = 1.3;
     % Time between images
     time_increment = 10; % min
     % Max velocity for color plots
@@ -11,45 +17,18 @@ arguments
     % Set to 0 to plot x and y components, otherwise plot radial and tangential
     plot_radial = 0;
 end
-%PLOT_CELLVEL Plot cell velocities
+% PLOT_CELLVEL Plot cell velocities
 %
-% First run digital image correlation on images of the cells. Since you are
-% using image correlation, which correlates a subset, cells must be
-% confluent.
-%
-% This script requires a mat file containing the following:
-%   x, y: 2D arrays containing the gridpoints on which the DIC was
-%         computed. This can be made using Matlab's meshgrid command.
-%         Units: pix.
-%   u, v: Incremental displacements of cell image computed by image
-%         correlation in horizontal and vertical directions. These are 2D
-%         or 3D arrays of size (M, N, P) where M and N are the number of
-%         rows and columns, which must match the size of x and y. Variable
-%         P corresponds to different time points. If there is only one time
-%         point, then the array is 2D (i.e., P=1).
-%
-% This script also requires a file titled 'ExperimentalSettings.txt'
-% containing information described in the readme.
-%
-% Other required inputs are described in the comments of the section USER
-% INPUTS below.
-%
-% Optional: It can be useful to run batch jobs by running this script as a
-% function.
+% First run compute_cellvel.m, then use this for plotting
 %
 % Written by Jacob Notbohm, Univerity of Wisconsin-Madison, 2015-2020
+% Adapted by Frank Charbonier, Stanford University, 2023
 
 % clear;
 close all;
 % clc;
 
-
 %% --- USER INPUTS ---
-% Name of displacment data to load
-DICname = 'cells_DIC_results.mat';
-% Name of multipage tif file to plot cells.
-%   Set to [] if it matches c2_*.tif
-%   Set to 'none' if there is no cell image
 % Typically, the quiver plot, the number of quivers needs to be reduced so
 % that they can be seen more clearly. Downsample the number of data points
 % for plotting quivers by this factor
@@ -57,23 +36,13 @@ qd = 8;
 % Quiver size
 quiver_size=3;
 % Header of name to save plots. This can contain a directory listing
-% dirname = 'cell_velocity'; % Name of a folder to put plots in
-dirname = 'cell_velocity_qd_8_quiver_size_3'; % Name of a folder to put plots in
+dirname = 'cell_velocity'; % Name of a folder to put plots in
+% dirname = 'cell_velocity_qd_8_quiver_size_3'; % Name of a folder to put plots in
 savenameheader = [dirname,'/t_']; % Header of file name to save
 % Set to [] to make figure visible. Set to 1 to make figure invisible.
 invisible = 1;
 % Name of file to save outputs
 savename_data = 'cellvel_processed.mat';
-
-
-% %% Get time between images
-% if isfile('TimeIncrement.txt')
-%     fid = fopen('TimeIncrement.txt');
-%     txtcell = cell2mat(textscan(fid,'%f %*[^\n]')); % '%*[^\n]' skips the remainder of each line
-%     time_increment = txtcell(1); % min
-%     fclose(fid);
-% end
-
 
 %% --- MAKE PLOTS ---
 
@@ -83,67 +52,11 @@ if exist(dirname,'dir')==7
 end
 mkdir(dirname);
 
-% Get name of multipagetif file to plot cells
-if isempty(cellname)
-    cellname = dir('c2_*.tif');
-    cellname = cellname(1).name;
-end
-
-% Get pixel size from Experimental Settings file
-fid = fopen('ExperimentalSettings.txt');
-txtcell = cell2mat(textscan(fid,'%f %*[^\n]')); % '%*[^\n]' skips the remainder of each line
-pix_size = txtcell(1)*1e6; % Pixel size, um
-fclose(fid);
 % Load data
-load(DICname);
-u_cell=u; v_cell=v; x_cell=x; y_cell=y; % Rename variables associated with cell displacements so they aren't overwritten
-% Convert from pix to um
-x_cell=x_cell*pix_size;     y_cell=y_cell*pix_size;
-u_cell=u_cell*pix_size;     v_cell=v_cell*pix_size;
-% Convert from displacements to velocities
-u_cell = u_cell/time_increment;
-v_cell = v_cell/time_increment;
+load(cellvel_savename);
 
 % Number of correlations
 K = size(u_cell,3);
-
-% Preallocate array for radial and tangential displacements
-if (plot_radial==1)
-    ut = zeros(size(u_cell));
-    ur = zeros(size(u_cell));
-end
-
-% Get center from center of first domain image
-if ~isempty(domainname)
-    domain1 = imread(domainname,1);
-    domain1 = double(domain1); % Convert to double precision
-    domain1 = domain1/max(domain1(:)); % Set max value to 1
-    % Downsample domain
-    % x and y grid points start at w0/2 and end w0/2 before the image ends.
-    % First crop off edges so that domain matches start and end points of x
-    % and y.
-    domain1 = domain1(round(min(y_cell(:))/pix_size):round(max(y_cell(:))/pix_size),round(min(x_cell(:))/pix_size):round(max(x_cell(:))/pix_size));
-    domain1 = downsample(domain1,d0); % downsample number of rows
-    domain1 = downsample(domain1',d0)'; % downsample number of cols
-    % [M, N] = size(x);
-    % domain = domain(1:M,1:N); % Correct for slightly larger domain. I should clean this up later.
-    % Centroid coordinates
-    xc = sum(x(:).*domain1(:)) / sum(domain1(:)); % Units: pix (same units as x and y)
-    yc = sum(y(:).*domain1(:)) / sum(domain1(:));
-    % Find indices corresponding to nearest x and y coords to xc and yc
-    xv = x(1,:);
-    yv = y(:,1);
-    distx = abs(xc-xv);
-    disty = abs(yc-yv);
-    [~, xc_idx] = min(distx);
-    [~, yc_idx] = min(disty);
-    % Convert back to um
-    xc = xc_idx*d0*pix_size;
-    yc = yc_idx*d0*pix_size;
-else
-    xc = mean(x(:));
-    yc = mean(y(:));
-end
 
 cmap = load('map_cold-hot.dat'); % Load hot-cold colormap data
 
@@ -178,61 +91,9 @@ for k=1:K
         title('Current')
     end
     
-    % Domain
-    if ~isempty(domainname)
-        domain = imread(domainname,k);
-        domain = double(domain); % Convert to double precision
-        domain = domain/max(domain(:)); % Set max value to 1
-        domain = logical(domain); % Convert to logical
-        % Downsample domain
-        % x and y grid points start at w0/2 and end w0/2 before the image ends.
-        % First crop off edges so that domain matches start and end points of x
-        % and y.
-        domain = domain(round(min(y_cell(:))/pix_size):round(max(y_cell(:))/pix_size),round(min(x_cell(:))/pix_size):round(max(x_cell(:))/pix_size));
-        domain = downsample(domain,d0); % downsample number of rows
-        domain = downsample(domain',d0)'; % downsample number of cols
-        % Centroid coordinates
-        xc = sum(x(:).*domain(:)) / sum(domain(:)); % Units: pix (same units as x and y)
-        yc = sum(y(:).*domain(:)) / sum(domain(:));
-        % Find indices corresponding to nearest x and y coords to xc and yc
-        xv = x(1,:);
-        yv = y(:,1);
-        distx = abs(xc-xv);
-        disty = abs(yc-yv);
-        [~, xc_idx] = min(distx);
-        [~, yc_idx] = min(disty);
-        % Convert back to um
-        xc = xc_idx*d0*pix_size;
-        yc = yc_idx*d0*pix_size;
-    end
-    
-    % Cell velocity
+    % Load cell velocity for current frame
     u_cell_k = u_cell(:,:,k);
     v_cell_k = v_cell(:,:,k);
-    
-    if ~isempty(domainname)
-        % Correct for drift by finding mean of velocity outside domain
-        SE = strel('disk',5,0);
-        domain_dilate = imdilate(domain,SE);
-        u_cell_k = u_cell_k - nanmean(u_cell_k(~domain_dilate));
-        v_cell_k = v_cell_k - nanmean(v_cell_k(~domain_dilate));
-        
-        %         % Correct for drift by subtracting off median velocity
-        %         u_cell_k = u_cell_k - median(u_cell_k(domain));
-        %         v_cell_k = v_cell_k - median(v_cell_k(domain));
-        
-        % Set values outside domain to nan
-        u_cell_k(~domain) = nan;
-        v_cell_k(~domain) = nan;
-        % Update values for u_cell and v_cell
-        u_cell(:,:,k) = u_cell_k;
-        v_cell(:,:,k) = v_cell_k;
-    else
-        % Subtract off median of full velocity field. This may or may not
-        % work for your images.
-        %         u_cell_k = u_cell_k - nanmedian(u_cell_k(:));
-        %         v_cell_k = v_cell_k - nanmedian(v_cell_k(:));
-    end
     
     % Plot speed
     subplot(2,3,5)
@@ -288,13 +149,14 @@ for k=1:K
     
     % OPTIONAL: radial and angular compoents of velocity instead of x and y
     if (plot_radial==1)
+        % Load cell velocity for current frame
+        ur_k = ur(:,:,k);
+        ut_k = ut(:,:,k);
         % Radial velocity
         subplot(2,3,2);
     
         % r_grid = sqrt( (x-xc).^2 + (y-yc).^2 ); % Gridpoints
-        theta = atan2( (y_cell-yc), (x_cell-xc) );
-    
-        ur_k = u_cell_k.*cos(theta) + v_cell_k.*sin(theta);
+        % theta = atan2( (y_cell-yc), (x_cell-xc) );
     
 %         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ur_k);
 %         caxis([-max_vel max_vel]); colormap(gca, cmap); colorbar;
@@ -307,10 +169,7 @@ for k=1:K
         title('Cell radial velocity');
     
         % Angular velocity
-        subplot(2,3,3)
-    
-        ut_k = u_cell_k.*cos(theta+pi/2) + v_cell_k.*sin(theta+pi/2);
-    
+        subplot(2,3,3)    
 %         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ut_k);
 %         caxis([-max_vel max_vel]); colormap(gca,cmap); colorbar;
         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ut_k, ...
@@ -321,21 +180,11 @@ for k=1:K
         xlabel('\mum','fontsize',11); ylabel('\mum','fontsize',11);
         title('Cell angular velocity');
 
-        % Update values for ut and ur
-        ut(:,:,k) = ut_k;
-        ur(:,:,k) = ur_k;
     end
     % Save
      set(gcf,'PaperPositionMode','auto','InvertHardCopy','off');
     print('-dpng','-r300',[savenameheader,num2str(k,'%0.3d'),'-',num2str(k+1,'%0.3d')]);
     
     close(hf);
-    
-    if (plot_radial==1)
-        save(savename_data, 'x_cell', 'y_cell', 'u_cell','v_cell', 'ut', 'ur');
-    else
-        save(savename_data, 'x_cell', 'y_cell', 'u_cell','v_cell');
-    end
-       % outputs: 
     
 end
