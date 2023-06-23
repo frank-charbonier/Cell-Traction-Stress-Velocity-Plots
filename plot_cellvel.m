@@ -105,7 +105,7 @@ for k=1:K
     v_cell_k2=downsample(v_cell_k,qd); v_cell_k2=downsample(v_cell_k2',qd)';
     quiver(x_cell2,y_cell2,u_cell_k2,v_cell_k2, quiver_size,... % The scalar number is the relative scaling (length) of the quivers
         'color', [0 0 0],'linewidth',1); %You may have to adjust the color of the quivers to show up agaist the colormap
-    caxis([0 max_vel]);colormap(gca, brewermap([],'YlOrRd')); colorbar;
+    clim([0 max_vel]);colormap(gca, brewermap([],'YlOrRd')); colorbar;
     axis xy; axis equal; axis tight; set(gca,'box','off');
     if pix_size == 1
         xlabel('pix'); ylabel('pix');
@@ -119,7 +119,7 @@ for k=1:K
     % imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_k);
     imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],u_cell_k, ...
         "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
-    caxis([min_vel max_vel]); colormap(gca, cmap); colorbar;
+    clim([min_vel max_vel]); colormap(gca, cmap); colorbar;
     set(gca, 'Color', 'k')   % Set plot background to black
     axis xy; axis equal; axis tight; set(gca,'box','off');
     if pix_size == 1
@@ -134,7 +134,7 @@ for k=1:K
     % imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],v_cell_k);
     imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],v_cell_k, ...
         "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
-    caxis([min_vel max_vel]); colormap(gca, cmap); colorbar;
+    clim([min_vel max_vel]); colormap(gca, cmap); colorbar;
     set(gca, 'Color', 'k')   % Set plot background to black
     axis xy; axis equal; axis tight; set(gca,'box','off');
     if pix_size == 1
@@ -153,7 +153,7 @@ for k=1:K
         subplot(2,3,2);
         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ur_k, ...
             "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
-        caxis([min_vel max_vel]); colormap(gca, cmap); colorbar;
+        clim([min_vel max_vel]); colormap(gca, cmap); colorbar;
         set(gca, 'Color', 'k')   % Set plot background to black
         axis xy; axis equal; axis tight; set(gca,'box','off');
         xlabel('\mum','fontsize',11); ylabel('\mum','fontsize',11);
@@ -163,7 +163,7 @@ for k=1:K
         subplot(2,3,3)    
         imagesc([min(x_cell(:)) max(x_cell(:))],[min(y_cell(:)) max(y_cell(:))],ut_k, ...
             "AlphaData",~isnan(u_cell_k)); % use AlphaData property to make naan values transparent
-        caxis([min_vel max_vel]); colormap(gca, cmap); colorbar;
+        clim([min_vel max_vel]); colormap(gca, cmap); colorbar;
         set(gca, 'Color', 'k')   % Set plot background to black
         axis xy; axis equal; axis tight; set(gca,'box','off');
         xlabel('\mum','fontsize',11); ylabel('\mum','fontsize',11);
