@@ -1,19 +1,21 @@
 function compute_cellvel(domainname, DICname, cellvel_savename, pix_size, time_increment, plot_radial)
-arguments
-    % Name of domain. This is where cells are located. Set to [] if no domain
-    domainname = 'domain.tif';
-    % Name of displacment data to load
-    DICname = 'cells_DIC_results.mat';
-    % cellvel_savename
-    cellvel_savename = 'cellvel_processed.mat';
-    % Pixel size [microns]
-    pix_size = 1.3;
-    % Time between images
-    time_increment = 10; % min
-    % Assay format
-    % Set to 0 to plot x and y components, otherwise plot radial and tangential
-    plot_radial = 0;
-end
+% uncomment below to use default function arguments
+% arguments
+%     % Name of domain. This is where cells are located. Set to [] if no domain
+%     domainname = 'domain.tif';
+%     % Name of displacment data to load
+%     DICname = 'cells_DIC_results.mat';
+%     % cellvel_savename
+%     cellvel_savename = 'cellvel_processed.mat';
+%     % Pixel size [microns]
+%     pix_size = 1.3;
+%     % Time between images
+%     time_increment = 10; % min
+%     % Assay format
+%     % Set to 0 to plot x and y components, otherwise plot radial and tangential
+%     plot_radial = 0;
+% end
+%
 % COMPUTE_CELLVEL Compute cell velocities without plotting
 %
 % First run digital image correlation on images of the cells. Since you are
