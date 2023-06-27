@@ -1,4 +1,4 @@
-function compute_cellvel(domainname, DICname, cellvel_savename, pix_size, time_increment, plot_radial)
+function compute_cellvel(domainname, DICname, cellvel_savename, pix_size, time_increment, plot_radial, thr)
 % uncomment below to use default function arguments
 % arguments
 %     % Name of domain. This is where cells are located. Set to [] if no domain
@@ -14,6 +14,8 @@ function compute_cellvel(domainname, DICname, cellvel_savename, pix_size, time_i
 %     % Assay format
 %     % Set to 0 to plot x and y components, otherwise plot radial and tangential
 %     plot_radial = 0;
+%     % Reject displacements larger than give threshold, units are um
+%     thr = 10;
 % end
 %
 % COMPUTE_CELLVEL Compute cell velocities without plotting
@@ -127,13 +129,21 @@ for k=1:K
     % Cell velocity
     u_cell_k = u_cell(:,:,k);
     v_cell_k = v_cell(:,:,k);
+
+
+    % --- Remove displacements that are too large ---
+    idx = (abs(u_cell_k)>thr) | (abs(v_cell_k)>thr);
+    u_cell_k(idx) = nan;
+    v_cell_k(idx) = nan;
+    u_cell_k = inpaint_nans(u_cell_k);
+    v_cell_k = inpaint_nans(v_cell_k);
     
     if ~isempty(domainname)
         % Correct for drift by finding mean of velocity outside domain
         SE = strel('disk',5,0);
         domain_dilate = imdilate(domain,SE);
-        u_cell_k = u_cell_k - nanmean(u_cell_k(~domain_dilate));
-        v_cell_k = v_cell_k - nanmean(v_cell_k(~domain_dilate));
+        u_cell_k = u_cell_k - mean(u_cell_k(~domain_dilate), 'omitnan');
+        v_cell_k = v_cell_k - mean(v_cell_k(~domain_dilate), 'omitnan');
         
         %         % Correct for drift by subtracting off median velocity
         %         u_cell_k = u_cell_k - median(u_cell_k(domain));
@@ -148,8 +158,8 @@ for k=1:K
     else
         % Subtract off median of full velocity field. This may or may not
         % work for your images.
-        %         u_cell_k = u_cell_k - nanmedian(u_cell_k(:));
-        %         v_cell_k = v_cell_k - nanmedian(v_cell_k(:));
+                u_cell_k = u_cell_k - median(u_cell_k(:));
+                v_cell_k = v_cell_k - median(v_cell_k(:));
     end
     
     % OPTIONAL: compute radial and angular components of velocity instead of x and y
