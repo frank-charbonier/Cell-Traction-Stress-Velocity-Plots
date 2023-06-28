@@ -14,8 +14,8 @@ function compute_cellvel(domainname, DICname, cellvel_savename, pix_size, time_i
 %     % Assay format
 %     % Set to 0 to plot x and y components, otherwise plot radial and tangential
 %     plot_radial = 0;
-%     % Reject displacements larger than give threshold, units are um
-%     thr = 10;
+%     % Reject displacements larger than give threshold, units are um/min
+%     thr = 1;
 % end
 %
 % COMPUTE_CELLVEL Compute cell velocities without plotting
@@ -132,6 +132,7 @@ for k=1:K
 
 
     % --- Remove displacements that are too large ---
+    % Remove displacements greater than threshold
     idx = (abs(u_cell_k)>thr) | (abs(v_cell_k)>thr);
     u_cell_k(idx) = nan;
     v_cell_k(idx) = nan;
