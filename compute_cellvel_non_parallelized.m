@@ -1,4 +1,4 @@
-function compute_cellvel(domainname, DICname, cellvel_savename, pix_size, time_increment, plot_radial, thr)
+function compute_cellvel_non_parallelized(domainname, DICname, cellvel_savename, pix_size, time_increment, plot_radial, thr)
 % uncomment below to use default function arguments
 % arguments
 %     % Name of domain. This is where cells are located. Set to [] if no domain
@@ -66,22 +66,28 @@ end
 
 % Get center from center of first domain image
 if ~isempty(domainname)
-    domain = imread(domainname,1);
-    domain = double(domain); % Convert to double precision
-    domain = domain/max(domain(:)); % Set max value to 1
-    domain = logical(domain); % Convert to logical
+    domain1 = imread(domainname,1);
+    domain1 = double(domain1); % Convert to double precision
+    domain1 = domain1/max(domain1(:)); % Set max value to 1
     % Downsample domain
     % x and y grid points start at w0/2 and end w0/2 before the image ends.
     % First crop off edges so that domain matches start and end points of x
     % and y.
-    domain = domain(round(min(y_cell(:))/pix_size):round(max(y_cell(:))/pix_size),round(min(x_cell(:))/pix_size):round(max(x_cell(:))/pix_size));
-    domain = downsample(domain,d0); % downsample number of rows
-    domain = downsample(domain',d0)'; % downsample number of cols
-
-    stats = regionprops(domain);
-    centroid = stats.Centroid;
-    xc_idx = round(centroid(1));    yc_idx = round(centroid(2));
-
+    domain1 = domain1(round(min(y_cell(:))/pix_size):round(max(y_cell(:))/pix_size),round(min(x_cell(:))/pix_size):round(max(x_cell(:))/pix_size));
+    domain1 = downsample(domain1,d0); % downsample number of rows
+    domain1 = downsample(domain1',d0)'; % downsample number of cols
+    % [M, N] = size(x);
+    % domain = domain(1:M,1:N); % Correct for slightly larger domain. I should clean this up later.
+    % Centroid coordinates
+    xc = sum(x(:).*domain1(:)) / sum(domain1(:)); % Units: pix (same units as x and y)
+    yc = sum(y(:).*domain1(:)) / sum(domain1(:));
+    % Find indices corresponding to nearest x and y coords to xc and yc
+    xv = x(1,:);
+    yv = y(:,1);
+    distx = abs(xc-xv);
+    disty = abs(yc-yv);
+    [~, xc_idx] = min(distx);
+    [~, yc_idx] = min(disty);
     % Convert back to um
     xc = xc_idx*d0*pix_size;
     yc = yc_idx*d0*pix_size;
@@ -90,31 +96,31 @@ else
     yc = mean(y(:));
 end
 
-% Turn off warning about temporary variables in parfor loop
-warning('off', 'MATLAB:mir_warning_maybe_uninitialized_temporary');
-
-% Using parallelization, runs ~100x faster
-parfor k=1:K
-    % Get centroid from domain
+for k=1:K
+    
+    % Domain
     if ~isempty(domainname)
-        DIC_data = load(DICname,"d0");
-        d0 = DIC_data.d0
-        domain_k = imread(domainname,k);
-        domain_k = double(domain_k); % Convert to double precision
-        domain_k = domain_k/max(domain_k(:)); % Set max value to 1
-        domain_k = logical(domain_k); % Convert to logical
+        domain = imread(domainname,k);
+        domain = double(domain); % Convert to double precision
+        domain = domain/max(domain(:)); % Set max value to 1
+        domain = logical(domain); % Convert to logical
         % Downsample domain
         % x and y grid points start at w0/2 and end w0/2 before the image ends.
         % First crop off edges so that domain matches start and end points of x
         % and y.
-        domain_k = domain_k(round(min(y_cell(:))/pix_size):round(max(y_cell(:))/pix_size),round(min(x_cell(:))/pix_size):round(max(x_cell(:))/pix_size));
-        domain_k = downsample(domain_k,d0); % downsample number of rows
-        domain_k = downsample(domain_k',d0)'; % downsample number of cols
-
-        stats = regionprops(domain_k);
-        centroid = stats.Centroid;
-        xc_idx = round(centroid(1));    yc_idx = round(centroid(2));
-
+        domain = domain(round(min(y_cell(:))/pix_size):round(max(y_cell(:))/pix_size),round(min(x_cell(:))/pix_size):round(max(x_cell(:))/pix_size));
+        domain = downsample(domain,d0); % downsample number of rows
+        domain = downsample(domain',d0)'; % downsample number of cols
+        % Centroid coordinates
+        xc = sum(x(:).*domain(:)) / sum(domain(:)); % Units: pix (same units as x and y)
+        yc = sum(y(:).*domain(:)) / sum(domain(:));
+        % Find indices corresponding to nearest x and y coords to xc and yc
+        xv = x(1,:);
+        yv = y(:,1);
+        distx = abs(xc-xv);
+        disty = abs(yc-yv);
+        [~, xc_idx] = min(distx);
+        [~, yc_idx] = min(disty);
         % Convert back to um
         xc = xc_idx*d0*pix_size;
         yc = yc_idx*d0*pix_size;
@@ -123,6 +129,7 @@ parfor k=1:K
     % Cell velocity
     u_cell_k = u_cell(:,:,k);
     v_cell_k = v_cell(:,:,k);
+
 
     % --- Remove displacements that are too large ---
     % Remove displacements greater than threshold
@@ -135,7 +142,7 @@ parfor k=1:K
     if ~isempty(domainname)
         % Correct for drift by finding mean of velocity outside domain
         SE = strel('disk',5,0);
-        domain_dilate = imdilate(domain_k,SE);
+        domain_dilate = imdilate(domain,SE);
         u_cell_k = u_cell_k - mean(u_cell_k(~domain_dilate), 'omitnan');
         v_cell_k = v_cell_k - mean(v_cell_k(~domain_dilate), 'omitnan');
         
@@ -144,8 +151,8 @@ parfor k=1:K
         %         v_cell_k = v_cell_k - median(v_cell_k(domain));
         
         % Set values outside domain to nan
-        u_cell_k(~domain_k) = nan;
-        v_cell_k(~domain_k) = nan;
+        u_cell_k(~domain) = nan;
+        v_cell_k(~domain) = nan;
         % Update values for u_cell and v_cell
         u_cell(:,:,k) = u_cell_k;
         v_cell(:,:,k) = v_cell_k;
@@ -169,13 +176,11 @@ parfor k=1:K
         ut(:,:,k) = ut_k;
         ur(:,:,k) = ur_k;
     end
-end
-
-if (plot_radial==1)
-    save(cellvel_savename, 'x_cell', 'y_cell', 'u_cell','v_cell', 'ut', 'ur', "xc", "yc");
-else
-    save(cellvel_savename, 'x_cell', 'y_cell', 'u_cell','v_cell', "xc", "yc");
-end
-% outputs:
-
+    
+    if (plot_radial==1)
+        save(cellvel_savename, 'x_cell', 'y_cell', 'u_cell','v_cell', 'ut', 'ur', "xc", "yc");
+    else
+        save(cellvel_savename, 'x_cell', 'y_cell', 'u_cell','v_cell', "xc", "yc");
+    end
+       % outputs: 
 end
