@@ -51,8 +51,19 @@ if exist(dirname,'dir')==7
 end
 mkdir(dirname);
 
-% Load data
-load(cellvel_savename);
+% Explicitly initialize compute velocity data to enable parfor loop
+% Note: parfor is not faster than normal loop over correlations in current script
+if (plot_radial==1)
+    cellvel_data = load(cellvel_savename,"u_cell", "v_cell", "x_cell", "y_cell", "ur", "ut");
+    ur = cellvel_data.ur;
+    ut = cellvel_data.ut;
+else
+    cellvel_data = load(cellvel_savename,"u_cell", "v_cell", "x_cell", "y_cell");
+end
+u_cell = cellvel_data.u_cell;
+v_cell = cellvel_data.v_cell;
+x_cell = cellvel_data.x_cell;
+y_cell = cellvel_data.y_cell;
 
 % Loop over all correlations
 K = size(u_cell,3);
