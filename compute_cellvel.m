@@ -43,11 +43,14 @@ close all;
 % clc;
 
 %% --- COMPUTE CELL VELOCITIES ---
-% Load data
-load(DICname);
+% Load variables associated with cell displacements and rename so they aren't overwritten
+DIC_data = load(DICname, "x", "y", "u", "v", "d0");
+u_cell=DIC_data.u;
+v_cell=DIC_data.v;
+x_cell=DIC_data.x;
+y_cell=DIC_data.y;
+d0 = DIC_data.d0;
 
-% Rename variables associated with cell displacements so they aren't overwritten
-u_cell=u; v_cell=v; x_cell=x; y_cell=y;
 % Convert from pix to um
 x_cell=x_cell*pix_size;     y_cell=y_cell*pix_size;
 u_cell=u_cell*pix_size;     v_cell=v_cell*pix_size;
@@ -63,6 +66,12 @@ if (plot_radial==1)
     ut = zeros(size(u_cell));
     ur = zeros(size(u_cell));
 end
+
+% Initialize centroid to be center of image (needed for parfor loop)
+x=DIC_data.x;
+y=DIC_data.y;
+xc = mean(x(:));
+yc = mean(y(:));
 
 % Get center from center of first domain image
 if ~isempty(domainname)
@@ -91,14 +100,14 @@ else
 end
 
 % Turn off warning about temporary variables in parfor loop
-warning('off', 'MATLAB:mir_warning_maybe_uninitialized_temporary');
+% warning('off', 'MATLAB:mir_warning_maybe_uninitialized_temporary');
 
 % Using parallelization, runs ~100x faster
 parfor k=1:K
     % Get centroid from domain
     if ~isempty(domainname)
-        DIC_data = load(DICname,"d0");
-        d0 = DIC_data.d0
+        % DIC_data = load(DICname,"d0");
+        % d0 = DIC_data.d0
         domain_k = imread(domainname,k);
         domain_k = double(domain_k); % Convert to double precision
         domain_k = domain_k/max(domain_k(:)); % Set max value to 1
