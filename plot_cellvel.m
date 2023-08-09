@@ -1,4 +1,4 @@
-function plot_cellvel(cellname, cellvel_savename, pix_size, min_vel, max_vel, plot_radial)
+function plot_cellvel(cellname, cellvel_savename, pix_size, min_vel, max_vel, plot_radial, qd, quiver_size)
 % Uncomment the arguments section below to include default arguments for the function call
 % arguments
 %     % Name of multipage tif file to plot cells.
@@ -15,7 +15,13 @@ function plot_cellvel(cellname, cellvel_savename, pix_size, min_vel, max_vel, pl
 %     % Assay format
 %     % Set to 0 to plot x and y components, otherwise plot radial and tangential
 %     plot_radial = 0;
-% end
+%     % Typically, the quiver plot, the number of quivers needs to be reduced so
+%     % that they can be seen more clearly. Downsample the number of data points
+%     % for plotting quivers by this factor
+%       % qd = 8;
+%     % Quiver size
+%     quiver_size=3;
+% % end
 % % PLOT_CELLVEL Plot cell velocities
 % %
 % % First run compute_cellvel.m, then use this for plotting
@@ -28,12 +34,7 @@ close all;
 % clc;
 
 %% --- ADDITIONAL USER INPUTS ---
-% Typically, the quiver plot, the number of quivers needs to be reduced so
-% that they can be seen more clearly. Downsample the number of data points
-% for plotting quivers by this factor
-qd = 8;
-% Quiver size
-quiver_size=3;
+
 % Header of name to save plots. This can contain a directory listing
 dirname = 'cell_velocity'; % Name of a folder to put plots in
 % dirname = 'cell_velocity_qd_8_quiver_size_3'; % Name of a folder to put plots in
