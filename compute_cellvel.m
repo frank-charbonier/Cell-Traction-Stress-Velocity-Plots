@@ -143,14 +143,14 @@ parfor k=1:K
     
     if ~isempty(domainname)
         % Correct for drift by finding mean of velocity outside domain
-        SE = strel('disk',5,0);
-        domain_dilate = imdilate(domain_k,SE);
-        u_cell_k = u_cell_k - mean(u_cell_k(~domain_dilate), 'omitnan');
-        v_cell_k = v_cell_k - mean(v_cell_k(~domain_dilate), 'omitnan');
+        % SE = strel('disk',5,0);
+        % domain_dilate = imdilate(domain_k,SE);
+        % u_cell_k = u_cell_k - mean(u_cell_k(~domain_dilate), 'omitnan');
+        % v_cell_k = v_cell_k - mean(v_cell_k(~domain_dilate), 'omitnan');
         
-        %         % Correct for drift by subtracting off median velocity
-        %         u_cell_k = u_cell_k - median(u_cell_k(domain));
-        %         v_cell_k = v_cell_k - median(v_cell_k(domain));
+                % Correct for drift by subtracting off median velocity
+                u_cell_k = u_cell_k - median(u_cell_k(domain));
+                v_cell_k = v_cell_k - median(v_cell_k(domain));
         
         % Set values outside domain to nan
         u_cell_k(~domain_k) = nan;
