@@ -1,30 +1,30 @@
 function plot_displ_tractions(cellname, filename, domainname, dirname, savenameheader, umax, tmax, ...
-        num_images, invisible)
-    arguments
-        % Name of multipage tif file to plot cells. 
-        %   Set to [] if 'c2' is in the name
-        %   Set to 'none' if there is no cell image
-        cellname = 'cells.tif';
-        % Name of mat file with displacements and tractions
-        filename = 'tract_results.mat';
-        % Name of domain. This is where cells are located. Set to [] if no domain
-        domainname = 'domain.tif';
-        % Header of name to save plots.
-        dirname = 'displ_traction'; % Name of a folder to put plots in
-        savenameheader = [dirname,'/t_']; % Header of file name to save
-        % savenameheader = 'displ_traction_'; % Other options are commented
-        % curdir = pwd;
-        % [~, folderName, ~] = fileparts(curdir);
-        % savenameheader = ['../',folderName,'displ_traction_t'];
-        % Max value of displ and traction (used for color plot limits)
-        umax = 1;     % um
-        tmax = 600;      % Pa
-        % Number of images to plot. Set to empty arry [] to plot all images
-        num_images = [];
-        % Set to [] to make figure visible.
-        invisible = 1;
-    end
-%PLOT_DISPL_TRACTIONS Plot displacements and tractions
+        num_images, invisible, pix_size)
+%     arguments
+%         % Name of multipage tif file to plot cells. 
+%         %   Set to [] if 'c2' is in the name
+%         %   Set to 'none' if there is no cell image
+%         cellname = 'cells.tif';
+%         % Name of mat file with displacements and tractions
+%         filename = 'tract_results.mat';
+%         % Name of domain. This is where cells are located. Set to [] if no domain
+%         domainname = 'domain.tif';
+%         % Header of name to save plots.
+%         dirname = 'displ_traction'; % Name of a folder to put plots in
+%         savenameheader = [dirname,'/t_']; % Header of file name to save
+%         % savenameheader = 'displ_traction_'; % Other options are commented
+%         % curdir = pwd;
+%         % [~, folderName, ~] = fileparts(curdir);
+%         % savenameheader = ['../',folderName,'displ_traction_t'];
+%         % Max value of displ and traction (used for color plot limits)
+%         umax = 1;     % um
+%         tmax = 600;      % Pa
+%         % Number of images to plot. Set to empty arry [] to plot all images
+%         num_images = [];
+%         % Set to [] to make figure visible.
+%         invisible = 1;
+%     end
+% %PLOT_DISPL_TRACTIONS Plot displacements and tractions
 % 
 % First run digital image correlation and compute tractions.
 % 
@@ -53,8 +53,8 @@ function plot_displ_tractions(cellname, filename, domainname, dirname, savenameh
 % Written by Jacob Notbohm, Univerity of Wisconsin-Madison, 2015-2020
 
 % clear;
-close all;
-clc;
+% close all;
+% clc;
 
 
 %% --- LOAD DATA ---
@@ -65,17 +65,18 @@ if exist(dirname,'dir')==7
 end
 mkdir(dirname);
 
-% Get name of multipagetif file to plot cells
-if isempty(cellname)
-    cellname = dir('*c2*.tif');
-    cellname = cellname(1).name;
-end
+% % Get name of multipagetif file to plot cells
+% if isempty(cellname)
+%     cellname = dir('*c2*.tif');
+%     cellname = cellname(1).name;
+% end
 
-% Get pixel size from Experimental Settings file
-fid = fopen('ExperimentalSettings.txt');
-txtcell = cell2mat(textscan(fid,'%f %*[^\n]')); % '%*[^\n]' skips the remainder of each line
-pix_size = txtcell(1)*1e6; % Pixel size, um
-fclose(fid);
+% % Get pixel size from Experimental Settings file
+% fid = fopen('ExperimentalSettings.txt');
+% txtcell = cell2mat(textscan(fid,'%f %*[^\n]')); % '%*[^\n]' skips the remainder of each line
+% pix_size = txtcell(1)*1e6; % Pixel size, um
+% fclose(fid);
+
 % Load data
 load(filename);
 x=x*pix_size; y=y*pix_size;
@@ -146,7 +147,7 @@ for k=1:num_images
     subplot(3,4,2);
     imagesc([min(x(:)), max(x(:))],[min(y(:)) max(y(:))],u(:,:,k));
     colormap(gca,cmap);
-    caxis([-umax umax]); hc = colorbar;
+    clim([-umax umax]); hc = colorbar;
     xlabel('\mum'); ylabel('\mum');
     axis xy; axis equal; axis tight; axis tight; set(gca,'box','off');
     title('U_x')
@@ -154,7 +155,7 @@ for k=1:num_images
     subplot(3,4,3);
     imagesc([min(x(:)), max(x(:))],[min(y(:)) max(y(:))],v(:,:,k));
     colormap(gca,cmap);
-    caxis([-umax umax]); hc = colorbar;
+    clim([-umax umax]); hc = colorbar;
     xlabel('\mum'); ylabel('\mum');
     axis xy; axis equal; axis tight; set(gca,'box','off');
     title('U_y')
@@ -162,7 +163,7 @@ for k=1:num_images
     subplot(3,4,4)
     imagesc([min(x(:)), max(x(:))],[min(y(:)) max(y(:))],sqrt(u(:,:,k).^2+v(:,:,k).^2));
     colormap(gca,'hot');
-    caxis([0 umax]); hc = colorbar;
+    clim([0 umax]); hc = colorbar;
     xlabel('\mum'); ylabel('\mum');
     axis xy; axis equal; axis tight; set(gca,'box','off');
     title('|U|')
@@ -171,7 +172,7 @@ for k=1:num_images
     subplot(3,4,6)
     imagesc([min(x(:)), max(x(:))],[min(y(:)) max(y(:))],tx(:,:,k));
     colormap(gca,cmap);
-    caxis([-tmax tmax]); hc = colorbar;
+    clim([-tmax tmax]); hc = colorbar;
     xlabel('\mum'); ylabel('\mum');
     axis xy; axis equal; axis tight; set(gca,'box','off');
     title('t_x')
@@ -179,7 +180,7 @@ for k=1:num_images
     subplot(3,4,7)
     imagesc([min(x(:)), max(x(:))],[min(y(:)) max(y(:))],ty(:,:,k));
     colormap(gca,cmap);
-    caxis([-tmax tmax]); hc = colorbar;
+    clim([-tmax tmax]); hc = colorbar;
     xlabel('\mum'); ylabel('\mum');
     axis xy; axis equal; axis tight; set(gca,'box','off');
     title('t_y')
@@ -187,7 +188,7 @@ for k=1:num_images
     subplot(3,4,8)
     imagesc([min(x(:)), max(x(:))],[min(y(:)) max(y(:))],sqrt(tx(:,:,k).^2+ty(:,:,k).^2));
     colormap(gca,'hot');
-    caxis([0 tmax]); hc = colorbar;
+    clim([0 tmax]); hc = colorbar;
     xlabel('\mum'); ylabel('\mum');
     axis xy; axis equal; axis tight; set(gca,'box','off');
     title('|t|')
@@ -226,7 +227,7 @@ for k=1:num_images
     
     subplot(3,4,10)
     imagesc([min(x(:)), max(x(:))],[min(y(:)) max(y(:))],tr);
-    caxis([-tmax tmax]); colormap(gca,cmap); hc = colorbar;
+    clim([-tmax tmax]); colormap(gca,cmap); hc = colorbar;
     xlabel('\mum'); ylabel('\mum');
     axis xy; axis equal; axis tight; set(gca,'box','off');
     title('Radial traction, t_r')
@@ -234,7 +235,7 @@ for k=1:num_images
        
     subplot(3,4,11)
     imagesc([min(x(:)), max(x(:))],[min(y(:)) max(y(:))],ttheta);
-    caxis([-tmax tmax]); colormap(gca,cmap); hc = colorbar;
+    clim([-tmax tmax]); colormap(gca,cmap); hc = colorbar;
     xlabel('\mum'); ylabel('\mum');
     axis xy; axis equal; axis tight; set(gca,'box','off');
     title('Angular traction, t_\theta')
